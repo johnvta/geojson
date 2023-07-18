@@ -111,12 +111,12 @@
             center: [-120.7401, 47.7511] // starting center
         });
 
-        let hospitals, wacounties, table;
+        let Hospitals, wacounties, table;
 
         async function geojsonFetch() {
             let response;
-            response = await fetch('assets/hospitals.geojson');
-            hospitals = await response.json();
+            response = await fetch('assets/Hospitals.geojson');
+            Hospitals = await response.json();
             response = await fetch('assets/wacounties.geojson');
             wacounties = await response.json();
 
@@ -139,15 +139,15 @@
         }
 
         map.on('load', function loadingData() {
-            map.addSource('hospitals', {
+            map.addSource('Hospitals', {
                 type: 'geojson',
-                data: hospitals
+                data: Hospitals
             });
 
             map.addLayer({
-                'id': 'hospitals-layer',
+                'id': 'Hospitals-layer',
                 'type': 'circle',
-                'source': 'hospitals',
+                'source': 'Hospitals',
                 'paint': {
                     'circle-radius': 8,
                     'circle-stroke-width': 2,
