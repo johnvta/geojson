@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="utf-8">
+    <title>Fatal Drug Overdose Count in Washington (2013-2017)</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+    <style>
+      body {
+          margin: 0;
+          padding: 0;
+      }
+  
+      #container {
+          display: flex;
+          height: 100vh;
+          flex-direction: row;
+          align-items: stretch;
+      }
+  
+      #side-panel {
+          flex-basis: 500px;
+          overflow-y: scroll;
+          display: none; /* hide the side panel by default */
+      }
+  
+      #map {
+          flex-grow: 1;
+      }
+
+      button {
+            margin-bottom: 10px;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 16px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .tooltip {
+            position: absolute;
+            padding: 4px 8px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 9999;
+          }
+  
+      @media (min-width: 1024px) {
+          /* apply styles when the width is larger than 1024px */
+          #container {
+              flex-direction: row-reverse; /* reverse the order of side panel and map */
+          }
+  
+          #side-panel {
+              display: block; /* show the side panel */
+              flex-basis: auto; /* occupy remaining space */
+              width: 500px; /* set a fixed width */
+          }
+  
+          #map {
+              flex-grow: 1;
+              width: calc(100% - 500px); /* adjust map width to accommodate the side panel */
+          }
+      }
+  </style>
+  
+</head>
+
+<body>
+    <main id="container">
+        <div id="side-panel">
+
+            <h2>Fatal Drug Overdose Count in Washington (2013-2017)</h2>
+            <p><b>Polygons</b> represent Counties</p>
+            <p><b>Points</b> represent Hospitals</p>
+            <button>Sort by Drug Overdose Count</button>
+
+            <table>
+                <tr>
+                    <th>County</th>
+                    <th>Overdose Count</th>
+                    <th>Population</th>
+                </tr>
+            </table>
+
+        </div>
+        <div id="map"></div>
+    </main>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoiam9obnZ0YSIsImEiOiJjbGp6NWZ6Zm0wYTJ4M3VuMWJueXZ3YW1xIn0.zeNTVQnMetmAWv21sHnzkQ';
+
+        let map = new mapboxgl.Map({
+            container: 'map', // container ID
+            style: 'mapbox://styles/mapbox/streets-v11', // style URL
+            zoom: 5.5, // starting zoom
+            center: [-120.7401, 47.7511] // starting center
+        });
+
+        let hospitals, wacounties, table;
+
+        async function geojsonFetch() {
+            let response;
+            response = await fetch('assets/hospitals.geojson');
+            hospitals = await response.json();
+            response = await fetch('assets/wacounties.geojson');
+            wacounties = await response.json();
+
+            populateTable();
+        }
+
+        function populateTable() {
+            table = document.getElementsByTagName("table")[0];
+            let row, cell1, cell2, cell3;
+            for (let i = 0; i < wacounties.features.length; i++) {
+                // Create an empty <tr> element and add it to the 1st position of the table:
+                row = table.insertRow(-1);
+                cell1 = row.insertCell(0);
+                cell2 = row.insertCell(1);
+                cell3 = row.insertCell(2);
+                cell1.innerHTML = wacounties.features[i].properties.County;
+                cell2.innerHTML = wacounties.features[i].properties.drugs;
+                cell3.innerHTML = wacounties.features[i].properties.Population;
+            }
+        }
+
+        map.on('load', function loadingData() {
+            map.addSource('hospitals', {
+                type: 'geojson',
+                data: hospitals
+            });
+
+            map.addLayer({
+                'id': 'hospitals-layer',
+                'type': 'circle',
+                'source': 'hospitals',
+                'paint': {
+                    'circle-radius': 8,
+                    'circle-stroke-width': 2,
+                    'circle-color': 'green',
+                    'circle-stroke-color': 'white'
+                }
+            });
+
+            map.addSource('wacounties', {
+                type: 'geojson',
+                data: wacounties
+            });
+
+            map.addLayer({
+                'id': 'wacounties-layer',
+                'type': 'fill',
+                'source': 'wacounties',
+                'paint': {
+                    'fill-color': '#0080ff', // blue color fill
+                    'fill-opacity': 0.5
+                }
+            });
+        });
+
+        geojsonFetch();
+
+        let btn = document.getElementsByTagName("button")[0];
+
+        btn.addEventListener('click', sortTable);
+
+        // define the function to sort table
+        function sortTable(e) {
+
+        }
+
+        // define the function to sort table
+        function sortTable(e) {
+            let table, rows, switching, i, x, y, shouldSwitch;
+            table = document.getElementsByTagName("table")[0];
+            switching = true;
+            /*Make a loop that will continue until
+            no switching has been done:*/
+            while (switching) {
+                //start by saying: no switching is done:
+                switching = false;
+                rows = table.rows;
+                /*Loop through all table rows (except the
+                first, which contains table headers):*/
+                for (i = 1; i < (rows.length - 1); i++) {
+                    //start by saying there should be no switching:
+                    shouldSwitch = false;
+                    /*Get the two elements you want to compare,
+                    one from current row and one from the next:*/
+                    x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
+                    y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
+                    //check if the two rows should switch place:
+                    if (x < y) {
+                        //if so, mark as a switch and break the loop:
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+                if (shouldSwitch) {
+                    /*If a switch has been marked, make the switch
+                    and mark that a switch has been done:*/
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                }
+            }
+        }
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        document.body.appendChild(tooltip);
+
+        map.on('load', function loadingData() {
+
+
+          map.on('mousemove', 'wacounties-layer', function (e) {
+            tooltip.style.display = 'block';
+            tooltip.style.left = e.originalEvent.clientX + 'px';
+            tooltip.style.top = e.originalEvent.clientY + 'px';
+            tooltip.textContent = e.features[0].properties.County;
+          });
+
+          map.on('mouseleave', 'wacounties-layer', function () {
+            tooltip.style.display = 'none';
+          });
+        });
+
+        function toggleSidePanel() {
+            const sidePanel = document.getElementById('side-panel');
+            if (window.innerWidth < 1024) {
+                sidePanel.style.display = 'none';
+            } else {
+                sidePanel.style.display = 'block';
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>
